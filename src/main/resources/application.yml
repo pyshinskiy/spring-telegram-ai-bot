@@ -1,0 +1,10 @@
+telegram:
+  bot:
+    username: OpenAIProxyPyshBot
+    token: 7804322507:AAE2jem-okjG_RQaKKXitrdvUHhoZBx9ohY
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: refresh
