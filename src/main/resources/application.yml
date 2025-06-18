@@ -1,10 +1,10 @@
 telegram:
   bot:
     username: OpenAIProxyPyshBot
-    token: 7804322507:AAE2jem-okjG_RQaKKXitrdvUHhoZBx9ohY
+    token: YOUR_TOKEN
 
 open-router:
-  api-key: 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
+  api-key: YOUR_API_KEY
 
 management:
   endpoints:
