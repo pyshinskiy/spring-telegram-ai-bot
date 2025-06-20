@@ -74,7 +74,7 @@ public class LlmService {
             return "⚠️ Empty or invalid response from model";
         }
 
-       return chatResponse.choices().getFirst().message().content();
+       return chatResponse.choices().get(0).message().content();
 
     }
 }
