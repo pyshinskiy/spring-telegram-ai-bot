@@ -7,6 +7,9 @@ open-router:
   api-key: ${API_KEY}
   provisioning-key: ${PROVISIONING_KEY}
 
+actuate-job:
+  url: ${ACTUATE_URL}
+
 management:
   endpoints:
     web:
