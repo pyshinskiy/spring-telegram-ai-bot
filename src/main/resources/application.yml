@@ -5,6 +5,7 @@ telegram:
 
 open-router:
   api-key: ${API_KEY}
+  provisioning-key: ${PROVISIONING_KEY}
 
 management:
   endpoints:

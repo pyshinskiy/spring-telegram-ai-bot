@@ -1,53 +1,81 @@
 package com.example.demo.service;
 
+import com.example.demo.dto.ChatCompletionResponse;
+import com.example.demo.dto.ChatRequest;
+import com.example.demo.dto.Message;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
-
-import java.util.Map;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class LlmService {
 
     private final String OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
-    @Value("${open-router.api-key}")
-    private String apiKey; // 🔒 Замени на свой API-ключ
+    private final OpenRouterKeyService openRouterKeyService;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
 
     public String queryModel(String model, String userMessage) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setBearerAuth(apiKey);
-
-        Map<String, Object> requestBody = Map.of(
-                "model", model,
-                "messages", new Object[]{
-                        Map.of("role", "user", "content", userMessage)
-                }
-        );
-
-        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+        String apiKey = openRouterKeyService.getApiKey();
 
         try {
-            ResponseEntity<Map> response = restTemplate.postForEntity(OPENROUTER_URL, entity, Map.class);
-            var choices = (java.util.List<Map<String, Object>>) response.getBody().get("choices");
-            if (choices != null && !choices.isEmpty()) {
-                Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
-                return message.get("content").toString();
+            return getAnswer(sendRequest(apiKey, model, userMessage));
+        } catch (HttpClientErrorException e) {
+            if (e.getStatusCode().is4xxClientError()) {
+                log.warn("Client error received ({}). Trying to re-enable key and retry...", e.getStatusCode());
+                openRouterKeyService.enable();
+                String newKey = openRouterKeyService.getApiKey();
+                ChatCompletionResponse chatCompletionResponse = sendRequest(newKey, model, userMessage);
+                return getAnswer(chatCompletionResponse);
+            } else {
+                log.error("HTTP error during LLM request: {}", e.getMessage(), e);
             }
-            return "⚠️ Empty response";
         } catch (Exception e) {
-            log.error("Error occurred during requesting llm model {}", model, e);
-            return "❌ Error during requesting model";
+            log.error("Unexpected error during LLM request for model {}: {}", model, e.getMessage(), e);
         }
+
+        return "❌ Error during requesting model";
+    }
+
+    private ChatCompletionResponse sendRequest(String apiKey, String model, String userMessage) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("Authorization", "Bearer " + apiKey);  // без "Bearer " в кавычках
+
+        ChatRequest requestBody = new ChatRequest(
+                model,
+                new Message[]{ new Message("user", userMessage) }
+        );
+
+        HttpEntity<ChatRequest> entity = new HttpEntity<>(requestBody, headers);
+
+        ResponseEntity<ChatCompletionResponse> response = restTemplate.postForEntity(
+                OPENROUTER_URL, entity, ChatCompletionResponse.class
+        );
+
+        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+            throw new RuntimeException("Invalid response from OpenRouter: " + response.getStatusCode());
+        }
+
+        return response.getBody();
+    }
+
+    private String getAnswer(ChatCompletionResponse chatResponse) {
+        if (chatResponse == null || chatResponse.choices() == null || chatResponse.choices().isEmpty()) {
+            return "⚠️ Empty or invalid response from model";
+        }
+
+       return chatResponse.choices().getFirst().message().content();
+
     }
 }
 
