@@ -7,6 +7,8 @@ open-router:
   api-key: ${API_KEY}
   provisioning-key: ${PROVISIONING_KEY}
 
+gemini:
+  api-key: ${GEMINI_API_KEY}
 actuate-job:
   url: ${ACTUATE_URL}
 

@@ -13,7 +13,7 @@ import java.util.Map;
 @Service
 public class UserSessionService {
 
-    private final Map<Long, String> userModelMap = new HashMap<>();
+    private final Map<String, String> userModelMap = new HashMap<>();
 
     private final List<String> models = List.of(
             "openai/gpt-3.5-turbo",
@@ -22,11 +22,11 @@ public class UserSessionService {
             "meta-llama/llama-3-8b-instruct"
     );
 
-    public String getUserModel(Long userId) {
+    public String getUserModel(String userId) {
         return userModelMap.getOrDefault(userId, models.get(0));
     }
 
-    public String changeModel(Long userId, String model) {
+    public String changeModel(String userId, String model) {
         if (!models.contains(model)) {
             return "❌ Model wasn't found.";
         }
@@ -34,7 +34,7 @@ public class UserSessionService {
         return "✅ Model has set: " + model;
     }
 
-    public SendMessage getModelButtons(Long userId) {
+    public SendMessage getModelButtons(String userId) {
         String currentModel = getUserModel(userId);
 
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
